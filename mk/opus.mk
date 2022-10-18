@@ -9,6 +9,8 @@ opus-$(OPUS_VERSION)/build-%/config.h: tmp-inst/%/cflags.txt opus-$(OPUS_VERSION
 	cd opus-$(OPUS_VERSION)/build-$* ; \
 		emconfigure ../configure --prefix="$(PWD)/tmp-inst/$*" --host=mipsel-sysv \
 			--disable-shared \
+			--disable-doc \
+			--disable-extra-programs \
 			CFLAGS="-Oz `cat $(PWD)/tmp-inst/$*/cflags.txt`"
 	touch $@
 

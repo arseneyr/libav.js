@@ -34,5 +34,10 @@
   "homepage": "https://github.com/Yahweasel/libav.js#readme",
   "devDependencies": {
     "uglify-js": "^3.14.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./libav-3.8.5.1-default.mjs"
+    }
   }
 }

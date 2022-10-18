@@ -6,7 +6,7 @@
 LIBAVJS_VERSION=3.8.5.1
 EMCC=emcc
 MINIFIER=node_modules/.bin/uglifyjs -m
-CFLAGS=-Oz
+CFLAGS=-Oz -g1
 EFLAGS=\
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
@@ -22,7 +22,7 @@ all: build-default
 include mk/*.mk
 
 
-build-%: libav-$(LIBAVJS_VERSION)-%.js
+build-%: libav-$(LIBAVJS_VERSION)-%.js libav-$(LIBAVJS_VERSION)-%.mjs
 	true
 
 libav-$(LIBAVJS_VERSION)-%.js: libav-$(LIBAVJS_VERSION).js \
@@ -30,9 +30,13 @@ libav-$(LIBAVJS_VERSION)-%.js: libav-$(LIBAVJS_VERSION).js \
 	libav-$(LIBAVJS_VERSION)-%.wasm.js \
 	libav-$(LIBAVJS_VERSION)-%.simd.js \
 	node_modules/.bin/uglifyjs
-	sed "s/@CONFIG/$*/g" < $< | $(MINIFIER) > $@
+	sed "s/@CONFIG/$*/g" < $< > $@
 	chmod a-x *.wasm
 
+libav-$(LIBAVJS_VERSION)-%.mjs: libav-$(LIBAVJS_VERSION)-%.js
+	printf "var LibAV;\nexport default LibAV;\n" | cat $< - > $@
+
+libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 
 # General build rule for any target
 # Use: buildrule(target file name, target inst name, CFLAGS, 
@@ -129,11 +133,12 @@ libav-$(LIBAVJS_VERSION)-%.thrsimd.js: ffmpeg-$(FFMPEG_VERSION)/build-thrsimd-%/
 	mv $(@).tmp $(@)
 
 
-exports.json: libav.in.js post.in.js funcs.json apply-funcs.js
+libav-$(LIBAVJS_VERSION).js post.js exports.json libav.types.d.ts &: libav.in.js \
+	post.in.js \
+	funcs.json \
+	apply-funcs.js \
+	libav.types.in.d.ts
 	./apply-funcs.js $(LIBAVJS_VERSION)
-
-libav-$(LIBAVJS_VERSION).js post.js: exports.json
-	touch $@
 
 node_modules/.bin/uglifyjs:
 	npm install
@@ -213,6 +218,7 @@ distclean: clean
 
 .PRECIOUS: \
 	libav-$(LIBAVJS_VERSION)-%.js \
+	libav-$(LIBAVJS_VERSION)-%.mjs \
 	libav-$(LIBAVJS_VERSION)-%.asm.js \
 	libav-$(LIBAVJS_VERSION)-%.wasm.js \
 	libav-$(LIBAVJS_VERSION)-%.thr.js \
