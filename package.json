@@ -35,9 +35,5 @@
   "devDependencies": {
     "uglify-js": "^3.14.3"
   },
-  "exports": {
-    ".": {
-      "import": "./libav-3.8.5.1-default.mjs"
-    }
-  }
+  "module": "./libav-3.8.5.1-default.mjs"
 }
