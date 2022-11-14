@@ -160,6 +160,11 @@ Module.mkwriterdev = function(loc, mode) {
 // Users waiting to read
 Module.ff_reader_dev_waiters = [];
 
+Module.libavjs_read = function(h, buf, buf_size) {
+    console.log(args);
+    return Promise.resolve(0);
+}
+
 /**
  * Send some data to a reader device
  * @param name  Filename of the reader device

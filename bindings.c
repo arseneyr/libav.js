@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include <malloc.h>
+#include <emscripten.h>
 
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
@@ -24,6 +25,12 @@
 #include "libavutil/avutil.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
+
+EM_JS(int, libavjs_read_async, (void *h, uint8_t *buf, int buf_size), {
+    return Asyncify.handleAsync(function () {
+        return Module.libavjs_read(h, buf, buf_size);
+    });
+});
 
 #define A(struc, type, field) \
     type struc ## _ ## field(struc *a) { return a->field; } \
@@ -292,6 +299,36 @@ void sws_scale_frame() {}
  * Other bindings
  ***************************************************************/
 
+AVIOContext *avio_alloc_context_js(void* handle) {
+    uint8_t *buf = av_malloc(4096);
+    if (buf == NULL)
+        return NULL;
+    return avio_alloc_context(buf, 4096, 0, handle, libavjs_read_async, NULL, NULL);
+}
+
+AVFormatContext *avformat_open_input_js(void* handle, AVInputFormat *fmt, AVDictionary **options)
+{
+    uint8_t *buf = av_malloc(4096);
+    if (buf == NULL)
+        return NULL;
+    AVIOContext *io_ctx = avio_alloc_context(buf, 4096, 0, handle, libavjs_read_async, NULL, NULL);
+    if (io_ctx == NULL) {
+        av_free(buf);
+        return NULL;
+    }
+    AVFormatContext *fmt_ctx = avformat_alloc_context();
+    if (fmt_ctx == NULL) {
+        avio_context_free(&io_ctx);
+        return NULL;
+    }
+    fmt_ctx->pb = io_ctx;
+    int err = avformat_open_input(&fmt_ctx, NULL, fmt, options);
+    if (err < 0) {
+        return NULL;
+    }
+    return fmt_ctx;
+}
+
 AVFormatContext *avformat_alloc_output_context2_js(AVOutputFormat *oformat,
     const char *format_name, const char *filename)
 {
@@ -302,15 +339,15 @@ AVFormatContext *avformat_alloc_output_context2_js(AVOutputFormat *oformat,
     return ret;
 }
 
-AVFormatContext *avformat_open_input_js(const char *url, AVInputFormat *fmt,
-    AVDictionary **options)
-{
-    AVFormatContext *ret = NULL;
-    int err = avformat_open_input(&ret, url, fmt, options);
-    if (err < 0)
-        fprintf(stderr, "[avformat_open_input_js] %s\n", av_err2str(err));
-    return ret;
-}
+// AVFormatContext *avformat_open_input_js(const char *url, AVInputFormat *fmt,
+//     AVDictionary **options)
+// {
+//     AVFormatContext *ret = NULL;
+//     int err = avformat_open_input(&ret, url, fmt, options);
+//     if (err < 0)
+//         fprintf(stderr, "[avformat_open_input_js] %s\n", av_err2str(err));
+//     return ret;
+// }
 
 AVIOContext *avio_open2_js(const char *url, int flags,
     const AVIOInterruptCB *int_cb, AVDictionary **options)

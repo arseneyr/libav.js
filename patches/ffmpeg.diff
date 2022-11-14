@@ -5,51 +5,6 @@ index 0000000..416a6d1
 +++ b/PATCHED
 @@ -0,0 +1 @@
 +PATCHED
-diff --git a/libavformat/file.c b/libavformat/file.c
-index 8303436..7ce6768 100644
---- a/libavformat/file.c
-+++ b/libavformat/file.c
-@@ -38,6 +38,8 @@
- #include "os_support.h"
- #include "url.h"
- 
-+#include <emscripten.h>
-+
- /* Some systems may not have S_ISFIFO */
- #ifndef S_ISFIFO
- #  ifdef S_IFIFO
-@@ -106,12 +108,31 @@ static const AVClass pipe_class = {
-     .version    = LIBAVUTIL_VERSION_INT,
- };
- 
-+/* libav.js */
-+EM_JS(void, libavjs_wait_reader, (int fd), {
-+    return Asyncify.handleAsync(function() {
-+        return new Promise(function(res) {
-+            Module.ff_reader_dev_waiters.push(res);
-+        });
-+    });
-+});
-+/* /libav.js */
-+
- static int file_read(URLContext *h, unsigned char *buf, int size)
- {
-     FileContext *c = h->priv_data;
-     int ret;
-     size = FFMIN(size, c->blocksize);
-     ret = read(c->fd, buf, size);
-+
-+    /* libav.js */
-+    while (ret < 0 && errno == EAGAIN) {
-+        /* wait for more data */
-+        libavjs_wait_reader(c->fd);
-+        ret = read(c->fd, buf, size);
-+    }
-+    /* /libav.js */
-+
-     if (ret == 0 && c->follow)
-         return AVERROR(EAGAIN);
-     if (ret == 0)
 diff --git a/libavformat/oggdec.c b/libavformat/oggdec.c
 index a456c3d..a604699 100644
 --- a/libavformat/oggdec.c

@@ -14,7 +14,7 @@ EFLAGS=\
 	-s "EXTRA_EXPORTED_RUNTIME_METHODS=['cwrap']" \
 	-s MODULARIZE=1 \
 	-s ASYNCIFY \
-	-s "ASYNCIFY_IMPORTS=['libavjs_wait_reader']" \
+	-s "ASYNCIFY_IMPORTS=['libavjs_read_async']" \
 	-s ALLOW_MEMORY_GROWTH=1
 
 all: build-default

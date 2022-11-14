@@ -48,7 +48,7 @@ buildrule(thrsimd, [[[--arch=x86 --disable-inline-asm --disable-x86asm --enable-
 
 extract: ffmpeg-$(FFMPEG_VERSION)/PATCHED
 
-ffmpeg-$(FFMPEG_VERSION)/PATCHED: ffmpeg-$(FFMPEG_VERSION)/configure
+ffmpeg-$(FFMPEG_VERSION)/PATCHED: ffmpeg-$(FFMPEG_VERSION)/configure patches/ffmpeg.diff
 	cd ffmpeg-$(FFMPEG_VERSION) ; patch -p1 -i ../patches/ffmpeg.diff
 	touch $@
 

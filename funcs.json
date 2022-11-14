@@ -101,7 +101,8 @@
         ["free", null, ["number"]],
         ["malloc", "number", ["number"]],
         ["mallinfo_uordblks", "number", []],
-        ["libavjs_with_swscale", "number", []]
+        ["libavjs_with_swscale", "number", []],
+        ["avio_alloc_context_js", "number", ["number"]]
     ],
 
     "meta": [

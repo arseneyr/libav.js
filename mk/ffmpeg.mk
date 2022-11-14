@@ -87,7 +87,7 @@ ffmpeg-$(FFMPEG_VERSION)/build-thrsimd-%/ffbuild/config.mak: tmp-inst/thrsimd/cf
 
 extract: ffmpeg-$(FFMPEG_VERSION)/PATCHED
 
-ffmpeg-$(FFMPEG_VERSION)/PATCHED: ffmpeg-$(FFMPEG_VERSION)/configure
+ffmpeg-$(FFMPEG_VERSION)/PATCHED: ffmpeg-$(FFMPEG_VERSION)/configure patches/ffmpeg.diff
 	cd ffmpeg-$(FFMPEG_VERSION) ; patch -p1 -i ../patches/ffmpeg.diff
 	touch $@
 
