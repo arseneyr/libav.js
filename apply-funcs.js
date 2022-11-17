@@ -38,7 +38,7 @@ function decls(f, meta) {
     });
     accessors((decl) => {
         f(decl);
-        f(decl+"_s");
+        f(decl + "_s");
     });
     if (meta) {
         funcs.meta.forEach((decl) => {
@@ -55,78 +55,78 @@ function decls(f, meta) {
 }
 
 // post.js
-(function() {
-    var inp = fs.readFileSync("post.in.js", "utf8");
+// (function() {
+//     var inp = fs.readFileSync("post.in.js", "utf8");
 
-    var outp = "";
-    funcs.functions.forEach((decl) => {
-        outp += `var ${decl[0]} = ` +
-            `Module.${decl[0]} = ` +
-            `CAccessors.${decl[0]} = ` +
-            `Module.cwrap(${s(decl[0])}, ${s(decl[1])}, ${s(decl[2])}`;
-        if (decl[3] && decl[3].async)
-            outp += `, {async:true}`;
-        outp += ");\n";
-    });
-    accessors((decl, field) => {
-        if (field && field.array) {
-            outp += `var ${decl} = ` +
-                `Module.${decl} = ` +
-                `CAccessors.${decl} = ` +
-                `Module.cwrap(${s(decl)}, "number", ["number", "number"]);\n` +
-                `var ${decl}_s = ` +
-                `Module.${decl}_s = ` +
-                `CAccessors.${decl}_s = ` +
-                `Module.cwrap(${s(decl+"_s")}, null, ["number", "number", "number"]);\n`;
+//     var outp = "";
+//     funcs.functions.forEach((decl) => {
+//         outp += `var ${decl[0]} = ` +
+//             `Module.${decl[0]} = ` +
+//             `CAccessors.${decl[0]} = ` +
+//             `Module.cwrap(${s(decl[0])}, ${s(decl[1])}, ${s(decl[2])}`;
+//         if (decl[3] && decl[3].async)
+//             outp += `, {async:true}`;
+//         outp += ");\n";
+//     });
+//     accessors((decl, field) => {
+//         if (field && field.array) {
+//             outp += `var ${decl} = ` +
+//                 `Module.${decl} = ` +
+//                 `CAccessors.${decl} = ` +
+//                 `Module.cwrap(${s(decl)}, "number", ["number", "number"]);\n` +
+//                 `var ${decl}_s = ` +
+//                 `Module.${decl}_s = ` +
+//                 `CAccessors.${decl}_s = ` +
+//                 `Module.cwrap(${s(decl+"_s")}, null, ["number", "number", "number"]);\n`;
 
-        } else {
-            outp += `var ${decl} = ` +
-                `Module.${decl} = ` +
-                `CAccessors.${decl} = ` +
-                `Module.cwrap(${s(decl)}, "number", ["number"]);\n` +
-                `var ${decl}_s = ` +
-                `Module.${decl}_s = ` +
-                `CAccessors.${decl}_s = ` +
-                `Module.cwrap(${s(decl+"_s")}, null, ["number", "number"]);\n`;
-        }
-    });
+//         } else {
+//             outp += `var ${decl} = ` +
+//                 `Module.${decl} = ` +
+//                 `CAccessors.${decl} = ` +
+//                 `Module.cwrap(${s(decl)}, "number", ["number"]);\n` +
+//                 `var ${decl}_s = ` +
+//                 `Module.${decl}_s = ` +
+//                 `CAccessors.${decl}_s = ` +
+//                 `Module.cwrap(${s(decl+"_s")}, null, ["number", "number"]);\n`;
+//         }
+//     });
 
-    funcs.freers.forEach((decl) => {
-        outp += `var ${decl}_js = ` +
-            `Module.${decl}_js = ` +
-            `CAccessors.${decl}_js = ` +
-            "function(p) { " +
-            "var p2 = malloc(4); " +
-            "if (p2 === 0) throw new Error(\"Could not malloc\"); " +
-            "(new Uint32Array(Module.HEAPU8.buffer, p2, 1))[0] = p; " +
-            `CAccessors.${decl}(p2); ` +
-            "free(p2); " +
-            "};\n";
-    });
+//     funcs.freers.forEach((decl) => {
+//         outp += `var ${decl}_js = ` +
+//             `Module.${decl}_js = ` +
+//             `CAccessors.${decl}_js = ` +
+//             "function(p) { " +
+//             "var p2 = malloc(4); " +
+//             "if (p2 === 0) throw new Error(\"Could not malloc\"); " +
+//             "(new Uint32Array(Module.HEAPU8.buffer, p2, 1))[0] = p; " +
+//             `CAccessors.${decl}(p2); ` +
+//             "free(p2); " +
+//             "};\n";
+//     });
 
-    funcs.copiers.forEach((type) => {
-        outp += `var copyin_${type[0]} = ` +
-            `Module.copyin_${type[0]} = ` +
-            `CAccessors.copyin_${type[0]} = ` +
-            "function(ptr, arr) { " +
-            `var buf = new ${type[1]}(Module.HEAPU8.buffer, ptr); ` +
-            "buf.set(arr); " +
-            "};\n" +
-            `var copyout_${type[0]} = ` +
-            `Module.copyout_${type[0]} = ` +
-            `CAccessors.copyout_${type[0]} = ` +
-            "function(ptr, len) { " +
-            `return (new ${type[1]}(Module.HEAPU8.buffer, ptr, len)).slice(0); ` +
-            "};\n";
-    });
+//     funcs.copiers.forEach((type) => {
+//         outp += `var copyin_${type[0]} = ` +
+//             `Module.copyin_${type[0]} = ` +
+//             `CAccessors.copyin_${type[0]} = ` +
+//             "function(ptr, arr) { " +
+//             `var buf = new ${type[1]}(Module.HEAPU8.buffer, ptr); ` +
+//             "buf.set(arr); " +
+//             "};\n" +
+//             `var copyout_${type[0]} = ` +
+//             `Module.copyout_${type[0]} = ` +
+//             `CAccessors.copyout_${type[0]} = ` +
+//             "function(ptr, len) { " +
+//             `return (new ${type[1]}(Module.HEAPU8.buffer, ptr, len)).slice(0); ` +
+//             "};\n";
+//     });
 
-    outp = inp.replace("@FUNCS", outp);
+//     outp = inp.replace("@FUNCS", outp);
 
-    fs.writeFileSync("post.js", outp);
-})();
+//     fs.writeFileSync("post.js", outp);
+// })();
 
 // libav.types.d.ts
-(function() {
+(function () {
     var inp = fs.readFileSync("libav.types.in.d.ts", "utf8");
 
     function args(x) {
@@ -197,7 +197,7 @@ function decls(f, meta) {
 })();
 
 // libav.js
-(function() {
+(function () {
     var ver = process.argv[2];
     var inp = fs.readFileSync("libav.in.js", "utf8");
 
@@ -212,7 +212,7 @@ function decls(f, meta) {
 })();
 
 // exports.json
-(function() {
+(function () {
     var outp = [];
     decls((decl) => {
         outp.push("_" + decl);

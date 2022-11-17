@@ -11,7 +11,7 @@ EFLAGS=\
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
 	-s "EXPORTED_FUNCTIONS=@exports.json" \
-	-s "EXTRA_EXPORTED_RUNTIME_METHODS=['cwrap']" \
+	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
 	-s MODULARIZE=1 \
 	-s ASYNCIFY \
 	-s "ASYNCIFY_IMPORTS=['libavjs_read_async']" \
@@ -29,6 +29,7 @@ libav-$(LIBAVJS_VERSION)-%.js: libav-$(LIBAVJS_VERSION).js \
 	libav-$(LIBAVJS_VERSION)-%.asm.js \
 	libav-$(LIBAVJS_VERSION)-%.wasm.js \
 	libav-$(LIBAVJS_VERSION)-%.simd.js \
+	libav-$(LIBAVJS_VERSION)-%.min.mjs \
 	node_modules/.bin/uglifyjs
 	sed "s/@CONFIG/$*/g" < $< > $@
 	chmod a-x *.wasm
@@ -69,14 +70,18 @@ buildrule(simd.js, simd, [[[-msimd128]]])
 # wasm + threads + simd
 buildrule(thrsimd.js, thrsimd, [[[-pthread -msimd128]]])
 
-libav-$(LIBAVJS_VERSION).js post.js exports.json libav.types.d.ts &: libav.in.js \
-	post.in.js \
+buildrule(min.mjs, base, [[[-s EXPORT_ES6=1]]])
+
+libav-$(LIBAVJS_VERSION).js exports.json libav.types.d.ts: libav.in.js \
 	funcs.json \
 	apply-funcs.js \
 	libav.types.in.d.ts
 	./apply-funcs.js $(LIBAVJS_VERSION)
 
-node_modules/.bin/uglifyjs:
+post.js: node_modules/.bin/tsc post.ts
+	node_modules/.bin/tsc
+
+node_modules/.bin/uglifyjs node_modules/.bin/tsc:
 	npm install
 
 # Targets
@@ -155,6 +160,7 @@ distclean: clean
 .PRECIOUS: \
 	libav-$(LIBAVJS_VERSION)-%.js \
 	libav-$(LIBAVJS_VERSION)-%.mjs \
+	libav-$(LIBAVJS_VERSION)-%.min.mjs \
 	libav-$(LIBAVJS_VERSION)-%.asm.js \
 	libav-$(LIBAVJS_VERSION)-%.wasm.js \
 	libav-$(LIBAVJS_VERSION)-%.thr.js \

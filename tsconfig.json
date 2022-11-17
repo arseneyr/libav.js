@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"lib": [
+			"DOM",
+			"ESNext"
+		],
+		"module": "None",
+		// "outFile": "post.js",
+		"declaration": true
+	},
+	"files": [
+		"post.ts"
+	]
+}

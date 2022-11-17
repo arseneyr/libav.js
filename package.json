@@ -3,7 +3,6 @@
   "version": "3.8.5",
   "description": "A compilation of the libraries associated with handling audio and video in ffmpeg—libavformat, libavcodec, libavfilter, libavutil and libswresample—for WebAssembly and asm.js, and thus the web.",
   "main": "libav-3.8.5.1-default.js",
-  "types": "libav.types.d.ts",
   "directories": {
     "test": "tests"
   },
@@ -33,7 +32,17 @@
   },
   "homepage": "https://github.com/Yahweasel/libav.js#readme",
   "devDependencies": {
+    "@types/emscripten": "^1.39.6",
+    "@typescript/lib-dom": "npm:@types/web@0.0.79",
+    "typescript": "^4.8.4",
     "uglify-js": "^3.14.3"
   },
-  "module": "./libav-3.8.5.1-default.mjs"
+  "exports": {
+    "./wasm/*": "./libav-3.8.5.1-*.min.wasm",
+    "./*": {
+      "import": "./libav-3.8.5.1-*.min.mjs",
+      "require": "./libav-3.8.5.1-*.js",
+      "types": "./libav-3.8.5.1-*.min.d.mts"
+    }
+  }
 }

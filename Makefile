@@ -11,7 +11,7 @@ EFLAGS=\
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
 	-s "EXPORTED_FUNCTIONS=@exports.json" \
-	-s "EXTRA_EXPORTED_RUNTIME_METHODS=['cwrap']" \
+	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
 	-s MODULARIZE=1 \
 	-s ASYNCIFY \
 	-s "ASYNCIFY_IMPORTS=['libavjs_read_async']" \
@@ -29,6 +29,7 @@ libav-$(LIBAVJS_VERSION)-%.js: libav-$(LIBAVJS_VERSION).js \
 	libav-$(LIBAVJS_VERSION)-%.asm.js \
 	libav-$(LIBAVJS_VERSION)-%.wasm.js \
 	libav-$(LIBAVJS_VERSION)-%.simd.js \
+	libav-$(LIBAVJS_VERSION)-%.min.mjs \
 	node_modules/.bin/uglifyjs
 	sed "s/@CONFIG/$*/g" < $< > $@
 	chmod a-x *.wasm
@@ -133,14 +134,34 @@ libav-$(LIBAVJS_VERSION)-%.thrsimd.js: ffmpeg-$(FFMPEG_VERSION)/build-thrsimd-%/
 	mv $(@).tmp $(@)
 
 
-libav-$(LIBAVJS_VERSION).js post.js exports.json libav.types.d.ts &: libav.in.js \
-	post.in.js \
+
+libav-$(LIBAVJS_VERSION)-%.min.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-%/libavformat/libavformat.a \
+	exports.json post.js extern-post.js bindings.c
+	$(EMCC) $(CFLAGS) $(EFLAGS) -s EXPORT_ES6=1 \
+		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-$(*) \
+		`test ! -e configs/$(*)/link-flags.txt || cat configs/$(*)/link-flags.txt` \
+		bindings.c \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libavformat/libavformat.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libavfilter/libavfilter.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libavcodec/libavcodec.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswresample/libswresample.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libavutil/libavutil.a \
+		`grep LIBAVJS_WITH_SWSCALE configs/$(*)/link-flags.txt > /dev/null 2>&1 && echo 'ffmpeg-$(FFMPEG_VERSION)/build-base-$(*)/libswscale/libswscale.a'` \
+		`test ! -e configs/$(*)/libs.txt || sed 's/@TARGET/base/' configs/$(*)/libs.txt` -o $(@)
+	cat configs/$(*)/license.js $(@) > $(@).tmp
+	mv $(@).tmp $(@)
+
+
+libav-$(LIBAVJS_VERSION).js exports.json libav.types.d.ts: libav.in.js \
 	funcs.json \
 	apply-funcs.js \
 	libav.types.in.d.ts
 	./apply-funcs.js $(LIBAVJS_VERSION)
 
-node_modules/.bin/uglifyjs:
+post.js: node_modules/.bin/tsc post.ts
+	node_modules/.bin/tsc
+
+node_modules/.bin/uglifyjs node_modules/.bin/tsc:
 	npm install
 
 # Targets
@@ -219,6 +240,7 @@ distclean: clean
 .PRECIOUS: \
 	libav-$(LIBAVJS_VERSION)-%.js \
 	libav-$(LIBAVJS_VERSION)-%.mjs \
+	libav-$(LIBAVJS_VERSION)-%.min.mjs \
 	libav-$(LIBAVJS_VERSION)-%.asm.js \
 	libav-$(LIBAVJS_VERSION)-%.wasm.js \
 	libav-$(LIBAVJS_VERSION)-%.thr.js \
