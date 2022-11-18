@@ -6,9 +6,11 @@
 		],
 		"module": "None",
 		// "outFile": "post.js",
-		"declaration": true
+		// "declaration": true
 	},
 	"files": [
-		"post.ts"
+		"post.ts",
+		"post.d.ts",
+		// "libav-3.8.5.1-lite.min.d.ts"
 	]
 }

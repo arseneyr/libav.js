@@ -1,24 +1,26 @@
-type AVFormatContextPtr = number & { __brand: "AVFormatContextPtr" };
-type AVInputFormatPtr = number & { __brand: "AVInputFormatPtr" };
-type AVDictionaryPtr = number & { __brand: "AVDictionaryPtr" };
-type AVPacketPtr = number & { __brand: "AVPacketPtr" };
+
+// type AVFormatContextPtr = number & { __brand: "AVFormatContextPtr" };
+// type AVInputFormatPtr = number & { __brand: "AVInputFormatPtr" };
+// type AVDictionaryPtr = number & { __brand: "AVDictionaryPtr" };
+// type AVPacketPtr = number & { __brand: "AVPacketPtr" };
 
 const NULLPTR = 0 as number & { __brand: any };
 
-interface LivAVModule extends EmscriptenModule {
-	avformat_open_input_stream(
-		inputStream: ReadableStream<ArrayBufferView>,
-		fmt?: AVInputFormatPtr,
-		options?: AVDictionaryPtr
-	): Promise<AVFormatContextPtr>;
-	av_packet_alloc(): AVPacketPtr;
-	av_read_frame(ctx: AVFormatContextPtr, packet: AVPacketPtr): Promise<number>;
+// interface LibAVModule extends EmscriptenModule {
+// 	avformat_open_input_stream(
+// 		inputStream: ReadableStream<ArrayBufferView>,
+// 		fmt?: AVInputFormatPtr,
+// 		options?: AVDictionaryPtr
+// 	): Promise<AVFormatContextPtr>;
+// 	av_packet_alloc(): AVPacketPtr;
+// 	av_read_frame(ctx: AVFormatContextPtr, packet: AVPacketPtr): Promise<number>;
 
-	ff_open_streams: ((buf: Uint8Array) => Promise<number>)[];
-	libavjs_read(handle: number, buf: number, buf_size: number): Promise<number>;
-}
+// 	ff_open_streams: ((buf: Uint8Array) => Promise<number>)[];
+// 	libavjs_read(handle: number, buf: number, buf_size: number): Promise<number>;
+// }
 
-declare const Module: LivAVModule;
+
+declare const Module: LibAV.LibAVModule;
 
 Module.ff_open_streams = [];
 
