@@ -6,6 +6,7 @@
   "directories": {
     "test": "tests"
   },
+  "types": "types.d.mts",
   "scripts": {
     "postinstall": "patch-package",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -44,7 +45,7 @@
     "./*": {
       "import": "./libav-3.8.5.1-*.min.mjs",
       "require": "./libav-3.8.5.1-*.js",
-      "types": "./libav-3.8.5.1-*.min.d.mts"
+      "types": "./types.d.mts"
     }
   }
 }
