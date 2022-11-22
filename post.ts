@@ -1,4 +1,4 @@
-const NULLPTR = 0 as typeof LibAV.NULLPTR
+const NULLPTR = 0 as typeof LibAV.NULLPTR;
 
 declare const Module: LibAV.LibAVModule;
 
@@ -14,13 +14,13 @@ Module.libavjs_read = function (
 	if (stream) {
 		return stream(Module.HEAPU8.subarray(buf, buf + buf_size));
 	}
-	return Promise.resolve(LibAV.AVERROR_EOF);
+	return Promise.resolve(LibAV.AVError.EOF);
 };
 
 function streamReader(
 	reader: ReadableStreamDefaultReader<ArrayBufferView>
 ): (buf: Uint8Array) => Promise<number> {
-	let pendingBuffer: Uint8Array | null = null;
+	let remainingBuffer: Uint8Array | null = null;
 	function copy(
 		dest: Uint8Array,
 		source: ArrayBufferView
@@ -34,25 +34,26 @@ function streamReader(
 					source.buffer,
 					source.byteOffset + size,
 					source.byteLength - size
-				),
+				).slice(),
 			];
 		}
 		return [size, null];
 	}
-	return (buf) => {
-		if (pendingBuffer) {
-			let size;
-			[size, pendingBuffer] = copy(buf, pendingBuffer);
-			return Promise.resolve(size);
-		}
-		return reader.read().then(({ value }) => {
-			if (!value) {
-				return LibAV.AVERROR_EOF;
+	return async (destBuf: Uint8Array) => {
+		let copied = 0;
+		while (copied < destBuf.byteLength) {
+			const sourceBuf = remainingBuffer ?? (await reader.read()).value;
+			if (!sourceBuf) {
+				if (copied === 0) {
+					return LibAV.AVError.EOF;
+				}
+				break;
 			}
 			let size;
-			[size, pendingBuffer] = copy(buf, value);
-			return size;
-		});
+			[size, remainingBuffer] = copy(destBuf.subarray(copied), sourceBuf);
+			copied += size;
+		}
+		return copied;
 	};
 }
 
@@ -71,7 +72,7 @@ Module.avformat_open_input_stream = function (
 				if (value) {
 					return value.byteLength;
 				}
-				return LibAV.AVERROR_EOF;
+				return LibAV.AVError.EOF;
 			});
 	} catch {
 		read = streamReader(inputStream.getReader());
@@ -79,7 +80,7 @@ Module.avformat_open_input_stream = function (
 	Module.ff_open_streams[handle] = (buf) =>
 		read(buf).catch((err) => {
 			console.error(err);
-			return LibAV.AVERROR_EOF;
+			return LibAV.AVError.EOF;
 		});
 	return ccall(
 		"avformat_open_input_js",
@@ -98,5 +99,3 @@ Module.av_packet_alloc = cwrap(
 Module.av_read_frame = cwrap("av_read_frame", "number", ["number", "number"], {
 	async: true,
 }) as (ctx, packet) => Promise<LibAV.AVPacketPtr>;
-
-// export type { Module };

@@ -15,8 +15,8 @@
 
 if (typeof importScripts !== "undefined" && (typeof LibAV === "undefined" || !LibAV.nolibavworker)) {
     // We're a WebWorker, so arrange messages
-    LibAVFactory().then(function(libav) {
-        onmessage = function(e) {
+    LibAVFactory().then(function (libav) {
+        onmessage = function (e) {
             var id = e.data[0];
             var fun = e.data[1];
             var args = e.data.slice(2);
@@ -30,12 +30,12 @@ if (typeof importScripts !== "undefined" && (typeof LibAV === "undefined" || !Li
             }
             if (succ && typeof ret === "object" && ret !== null && ret.then) {
                 // Let the promise resolve
-                ret.then(function(res) {
+                ret.then(function (res) {
                     ret = res;
-                }).catch(function(ex) {
+                }).catch(function (ex) {
                     succ = false;
                     ret = ex.toString() + "\n" + ex.stack;
-                }).then(function() {
+                }).then(function () {
                     postMessage([id, fun, succ, ret]);
                 });
 
@@ -45,7 +45,7 @@ if (typeof importScripts !== "undefined" && (typeof LibAV === "undefined" || !Li
             }
         };
 
-        libav.onwrite = function(name, pos, buf) {
+        libav.onwrite = function (name, pos, buf) {
             /* We have to buf.slice(0) so we don't duplicate the entire heap just
              * to get one part of it in postMessage */
             postMessage(["onwrite", "onwrite", true, [name, pos, buf.slice(0)]]);
@@ -54,3 +54,5 @@ if (typeof importScripts !== "undefined" && (typeof LibAV === "undefined" || !Li
         postMessage(["onready", "onready", true, null]);
     });
 }
+
+export const NULLPTR = 0;

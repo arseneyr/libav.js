@@ -25,7 +25,9 @@ export interface LibAVModule extends EmscriptenModule {
   ff_open_streams: ((buf: Uint8Array) => Promise<number>)[];
   libavjs_read(handle: number, buf: number, buf_size: number): Promise<number>;
 }
-export const AVERROR_EOF = -541478725;
-export declare const NULLPTR: number & { __brand: any};
+export const enum AVError {
+  EOF = -541478725
+}
+export declare const NULLPTR: number & { __brand: any };
 declare const factory: EmscriptenModuleFactory<LibAVModule>;
 export default factory;
