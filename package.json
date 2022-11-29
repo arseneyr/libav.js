@@ -41,11 +41,16 @@
     "uglify-js": "^3.14.3"
   },
   "exports": {
+    "./wasm": "./avformat.wasm",
     "./wasm/*": "./libav-3.8.5.1-*.min.wasm",
+    ".": {
+      "import": "./avformat.mjs",
+      "types": "./test.d.mts"
+    },
     "./*": {
       "import": "./libav-3.8.5.1-*.min.mjs",
       "require": "./libav-3.8.5.1-*.js",
-      "types": "./types.d.mts"
+      "types": "./test.d.mts"
     }
   }
 }

@@ -42,6 +42,27 @@ libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 # General build rule for any target
 # Use: buildrule(target file name, target inst name, CFLAGS, 
 
+avformat.mjs: EFLAGS = \
+	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
+	-s "EXPORT_NAME='LibAVFactory'" \
+	-s "EXPORTED_FUNCTIONS=['_avformat_open_input_js']" \
+	-s MODULARIZE=1 \
+	-s ASYNCIFY \
+	-s "ASYNCIFY_IMPORTS=['libavjs_read_async']" \
+	-s ALLOW_MEMORY_GROWTH=1 \
+	-s EXPORT_ES6=1 \
+	-s FILESYSTEM=0
+
+avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavformat/libavformat.a bindings_min.c
+	$(EMCC) -O0 -g4 $(EFLAGS) -sLLD_REPORT_UNDEFINED \
+		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-lite \
+		`test ! -e configs/lite/link-flags.txt || cat configs/lite/link-flags.txt` \
+		bindings_min.c \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavformat/libavformat.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavutil/libavutil.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavcodec/libavcodec.a \
+		`test ! -e configs/lite/libs.txt || sed 's/@TARGET/base/' configs/lite/libs.txt` -o $(@)
+
 
 # asm.js version
 
@@ -158,7 +179,7 @@ libav-$(LIBAVJS_VERSION).js exports.json libav.types.d.ts: libav.in.js \
 	libav.types.in.d.ts
 	./apply-funcs.js $(LIBAVJS_VERSION)
 
-post.js: node_modules/.bin/tsc post.ts
+post.js post.d.ts: node_modules/.bin/tsc post.ts types.d.mts tsconfig.json
 	node_modules/.bin/tsc
 
 node_modules/.bin/uglifyjs node_modules/.bin/tsc:
