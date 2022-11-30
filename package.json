@@ -45,7 +45,7 @@
     "./wasm/*": "./libav-3.8.5.1-*.min.wasm",
     ".": {
       "import": "./avformat.mjs",
-      "types": "./test.d.mts"
+      "types": "./types.d.mts"
     },
     "./*": {
       "import": "./libav-3.8.5.1-*.min.mjs",

@@ -45,23 +45,25 @@ libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 avformat.mjs: EFLAGS = \
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
-	-s "EXPORTED_FUNCTIONS=['_avformat_open_input_js']" \
+	-s "EXPORTED_FUNCTIONS=['_avformat_open_input_js', '_av_packet_alloc', '_av_read_frame', '_av_packet_unref', '_AVPacket_size', '_AVPacket_data', '_avformat_alloc_context']" \
+	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
 	-s MODULARIZE=1 \
 	-s ASYNCIFY \
 	-s "ASYNCIFY_IMPORTS=['libavjs_read_async']" \
 	-s ALLOW_MEMORY_GROWTH=1 \
 	-s EXPORT_ES6=1 \
+	-s "ENVIRONMENT='web'" \
 	-s FILESYSTEM=0
 
-avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavformat/libavformat.a bindings_min.c
-	$(EMCC) -O0 -g4 $(EFLAGS) -sLLD_REPORT_UNDEFINED \
-		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-lite \
-		`test ! -e configs/lite/link-flags.txt || cat configs/lite/link-flags.txt` \
+avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a bindings_min.c post.js extern-post.js
+	$(EMCC) -O0 -g -gsource-map --source-map-base "/node_modules/libav.js/" $(EFLAGS) -sLLD_REPORT_UNDEFINED \
+		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-mux-only \
+		`test ! -e configs/mux-only/link-flags.txt || cat configs/mux-only/link-flags.txt` \
 		bindings_min.c \
-		ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavformat/libavformat.a \
-		ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavutil/libavutil.a \
-		ffmpeg-$(FFMPEG_VERSION)/build-base-lite/libavcodec/libavcodec.a \
-		`test ! -e configs/lite/libs.txt || sed 's/@TARGET/base/' configs/lite/libs.txt` -o $(@)
+		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavutil/libavutil.a \
+		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavcodec/libavcodec.a \
+		`test ! -e configs/mux-only/libs.txt || sed 's/@TARGET/base/' configs/mux-only/libs.txt` -o $(@)
 
 
 # asm.js version
@@ -179,7 +181,7 @@ libav-$(LIBAVJS_VERSION).js exports.json libav.types.d.ts: libav.in.js \
 	libav.types.in.d.ts
 	./apply-funcs.js $(LIBAVJS_VERSION)
 
-post.js post.d.ts: node_modules/.bin/tsc post.ts types.d.mts tsconfig.json
+post.js: node_modules/.bin/tsc post.ts post.d.ts types.d.mts tsconfig.json
 	node_modules/.bin/tsc
 
 node_modules/.bin/uglifyjs node_modules/.bin/tsc:

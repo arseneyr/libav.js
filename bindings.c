@@ -28,7 +28,7 @@
 
 EM_JS(int, libavjs_read_async, (void *h, uint8_t *buf, int buf_size), {
     return Asyncify.handleAsync(function () {
-        return Module.libavjs_read(h, buf, buf_size);
+        return libavjs_read(h, buf, buf_size);
     });
 });
 
