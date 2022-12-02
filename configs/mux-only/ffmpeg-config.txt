@@ -1,2 +1,7 @@
 --enable-demuxer=ogg
 --enable-muxer=ogg
+--disable-avdevice
+--disable-swresample
+--disable-swscale
+--disable-postproc
+--disable-avfilter
