@@ -47,6 +47,27 @@ AVFormatContext *avformat_open_input_js(void *handle, AVFormatContext *opt_fmt_c
     type struc ## _ ## field ## _a(struc *a, size_t c) { return a->field[c]; } \
     void struc ## _ ## field ## _a_s(struc *a, size_t c, type b) { a->field[c] = b; }
 
+/* AVCodecParameters */
+#define B(type, field) A(AVCodecParameters, type, field)
+B(enum AVCodecID, codec_id)
+B(enum AVMediaType, codec_type)
+B(uint8_t *, extradata)
+B(int, extradata_size)
+B(int, format)
+B(int64_t, bit_rate)
+B(int, profile)
+B(int, level)
+B(int, width)
+B(int, height)
+B(enum AVColorRange, color_range)
+B(enum AVColorPrimaries, color_primaries)
+B(enum AVColorTransferCharacteristic, color_trc)
+B(enum AVColorSpace, color_space)
+B(enum AVChromaLocation, chroma_location)
+B(int, channels)
+B(int, sample_rate)
+#undef B
+
 /* AVPacket */
 #define B(type, field) A(AVPacket, type, field)
 #define BL(type, field) AL(AVPacket, type, field)
@@ -61,3 +82,29 @@ B(int, size)
 B(int, stream_index)
 #undef B
 #undef BL
+
+/* AVFormatContext */
+#define B(type, field) A(AVFormatContext, type, field)
+#define BA(type, field) AA(AVFormatContext, type, field)
+B(unsigned int, nb_streams)
+B(struct AVOutputFormat *, oformat)
+B(AVIOContext *, pb)
+BA(AVStream *, streams)
+#undef B
+#undef BA
+
+/* AVStream */
+#define B(type, field) A(AVStream, type, field)
+#define BL(type, field) AL(AVStream, type, field)
+B(AVCodecParameters *, codecpar)
+BL(int64_t, duration)
+#undef B
+#undef BL
+
+int AVStream_time_base_num(AVStream *a) {
+    return a->time_base.num;
+}
+
+int AVStream_time_base_den(AVStream *a) {
+    return a->time_base.den;
+}

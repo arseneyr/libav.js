@@ -45,7 +45,7 @@ libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 avformat.mjs: EFLAGS = \
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
-	-s "EXPORTED_FUNCTIONS=['_avformat_open_input_js', '_av_packet_alloc', '_av_read_frame', '_av_packet_unref', '_AVPacket_size', '_AVPacket_data', '_avformat_alloc_context']" \
+	-s "EXPORTED_FUNCTIONS=@min-exports" \
 	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
 	-s MODULARIZE=1 \
 	-s ASYNCIFY \
@@ -55,7 +55,7 @@ avformat.mjs: EFLAGS = \
 	-s "ENVIRONMENT='web'" \
 	-s FILESYSTEM=0
 
-avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a bindings_min.c post.js extern-post.js
+avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a bindings_min.c post.js extern-post.js min-exports
 	$(EMCC) -O0 -g -gsource-map --source-map-base "/node_modules/libav.js/" $(EFLAGS) -sLLD_REPORT_UNDEFINED \
 		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-mux-only \
 		`test ! -e configs/mux-only/link-flags.txt || cat configs/mux-only/link-flags.txt` \

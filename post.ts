@@ -1,6 +1,13 @@
 const NULLPTR = 0 as typeof LibAV.NULLPTR;
 
-declare const Module: LibAV.LibAVModule;
+interface ExportedFuncs {
+  _avformat_alloc_context(): LibAV.AVFormatContextPtr;
+
+  _AVStream_time_base_num(stream: LibAV.AVStreamPtr): number;
+  _AVStream_time_base_den(stream: LibAV.AVStreamPtr): number;
+}
+
+declare const Module: LibAV.LibAVModule & ExportedFuncs;
 
 const ff_open_streams: Record<
   LibAV.AVFormatContextPtr,
@@ -116,3 +123,41 @@ Module.av_read_frame = cwrap("av_read_frame", "number", ["number", "number"], {
 
 Module.AVPacket_data = cwrap("AVPacket_data", "number", ["number"]);
 Module.AVPacket_size = cwrap("AVPacket_size", "number", ["number"]);
+Module.AVPacket_duration = cwrap("AVPacket_duration", "number", ["number"]);
+Module.AVPacket_pts = cwrap("AVPacket_pts", "number", ["number"]);
+Module.AVPacket_stream_index = cwrap("AVPacket_stream_index", "number", [
+  "number",
+]);
+
+Module.AVFormatContext_nb_streams = cwrap(
+  "AVFormatContext_nb_streams",
+  "number",
+  ["number"]
+);
+Module.AVFormatContext_streams_a = cwrap(
+  "AVFormatContext_streams_a",
+  "number",
+  ["number", "number"]
+) as LibAV.LibAVModule["AVFormatContext_streams_a"];
+
+Module.AVStream_time_base = function (stream: LibAV.AVStreamPtr) {
+  return {
+    num: Module._AVStream_time_base_num(stream),
+    den: Module._AVStream_time_base_den(stream),
+  };
+};
+Module.AVStream_codecpar = cwrap("AVStream_codecpar", "number", [
+  "number",
+]) as LibAV.LibAVModule["AVStream_codecpar"];
+
+Module.AVCodecParameters_channels = cwrap(
+  "AVCodecParameters_channels",
+  "number",
+  ["number"]
+) as LibAV.LibAVModule["AVCodecParameters_channels"];
+
+Module.AVCodecParameters_sample_rate = cwrap(
+  "AVCodecParameters_sample_rate",
+  "number",
+  ["number"]
+) as LibAV.LibAVModule["AVCodecParameters_sample_rate"];
