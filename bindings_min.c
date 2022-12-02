@@ -64,9 +64,13 @@ B(enum AVColorPrimaries, color_primaries)
 B(enum AVColorTransferCharacteristic, color_trc)
 B(enum AVColorSpace, color_space)
 B(enum AVChromaLocation, chroma_location)
-B(int, channels)
+// B(int, channels)
 B(int, sample_rate)
 #undef B
+
+int AVCodecParameters_channels(AVCodecParameters *p) {
+    return p->ch_layout.nb_channels;
+}
 
 /* AVPacket */
 #define B(type, field) A(AVPacket, type, field)
@@ -87,7 +91,7 @@ B(int, stream_index)
 #define B(type, field) A(AVFormatContext, type, field)
 #define BA(type, field) AA(AVFormatContext, type, field)
 B(unsigned int, nb_streams)
-B(struct AVOutputFormat *, oformat)
+B(const struct AVOutputFormat *, oformat)
 B(AVIOContext *, pb)
 BA(AVStream *, streams)
 #undef B
