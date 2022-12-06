@@ -5,6 +5,7 @@
 			"ESNext"
 		],
 		"module": "None",
+		"strict": true
 	},
 	"files": [
 		"post.ts",

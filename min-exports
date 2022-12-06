@@ -1,4 +1,5 @@
-_avformat_open_input_js
+_avjs_open_input
+_avjs_close_input
 _av_packet_alloc
 _av_read_frame
 _av_packet_unref

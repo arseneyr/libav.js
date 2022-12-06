@@ -49,7 +49,7 @@ avformat.mjs: EFLAGS = \
 	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
 	-s MODULARIZE=1 \
 	-s ASYNCIFY \
-	-s "ASYNCIFY_IMPORTS=['libavjs_read_async']" \
+	-s "ASYNCIFY_IMPORTS=['avjs_read_async']" \
 	-s ALLOW_MEMORY_GROWTH=1 \
 	-s EXPORT_ES6=1 \
 	-s "ENVIRONMENT='web'" \
