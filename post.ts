@@ -1,32 +1,35 @@
 const NULLPTR = 0 as typeof LibAV.NULLPTR;
 
-interface ExportedFuncs {
+interface PrivateExports {
   _avformat_alloc_context(): LibAV.AVFormatContextPtr;
+  _avjs_close_input(ctx: LibAV.AVFormatContextPtr): void;
 
   _AVStream_time_base_num(stream: LibAV.AVStreamPtr): number;
   _AVStream_time_base_den(stream: LibAV.AVStreamPtr): number;
 }
 
-declare const Module: LibAV.LibAVModule & ExportedFuncs;
+declare const Module: LibAV.LibAVModule & PrivateExports;
 
-const ff_open_streams: Record<
-  LibAV.AVFormatContextPtr,
-  (buf: Uint8Array) => Promise<number>
-> = [];
+interface StreamReader {
+  read(buf: Uint8Array): Promise<number>;
+  close(): Promise<void>;
+}
 
-function libavjs_read(
+const ff_open_streams: Record<LibAV.AVFormatContextPtr, StreamReader> = [];
+
+function avjs_read(
   handle: number,
   buf: number,
   buf_size: number
 ): Promise<number> {
   const stream = ff_open_streams[handle as LibAV.AVFormatContextPtr];
   if (stream) {
-    return stream(Module.HEAPU8.subarray(buf, buf + buf_size));
+    return stream.read(Module.HEAPU8.subarray(buf, buf + buf_size));
   }
   return Promise.resolve(LibAV.AVError.EOF);
 }
 
-function streamReader(
+function defaultStreamReader(
   reader: ReadableStreamDefaultReader<ArrayBufferView>
 ): (buf: Uint8Array) => Promise<number> {
   let remainingBuffer: Uint8Array | null = null;
@@ -60,66 +63,97 @@ function streamReader(
   };
 }
 
-const avformat_open_input_js = cwrap(
-  "avformat_open_input_js",
+function byobStreamReader(
+  reader: ReadableStreamBYOBReader
+): StreamReader["read"] {
+  return async (destBuf) => {
+    let copied = 0;
+    while (copied < destBuf.byteLength) {
+      const { value, done } = await reader.read(destBuf.subarray(copied));
+      if (value) {
+        copied += value.byteLength;
+        if (done) {
+          break;
+        }
+      } else {
+        return LibAV.AVError.EOF;
+      }
+    }
+    return copied;
+  };
+}
+
+function createStreamReader(
+  stream: ReadableStream<ArrayBufferView>
+): StreamReader {
+  let reader:
+    | ReadableStreamBYOBReader
+    | ReadableStreamDefaultReader<ArrayBufferView>;
+  let read: StreamReader["read"];
+  try {
+    reader = stream.getReader({ mode: "byob" });
+    read = byobStreamReader(reader);
+  } catch {
+    reader = stream.getReader();
+    read = defaultStreamReader(reader);
+  }
+
+  return {
+    read,
+    close() {
+      return reader.cancel();
+    },
+  };
+}
+
+const avjs_open_input = cwrap(
+  "avjs_open_input",
   "number",
-  ["number", "number", "number", "number"],
+  ["number", "number", "number", "number", "number"],
   { async: true }
-) as (
+) as unknown as (
   handle: number,
-  opt_fmx_ctx: LibAV.AVFormatContextPtr,
+  buf_size: number,
+  fmx_ctx: LibAV.AVFormatContextPtr,
   fmt: LibAV.AVInputFormatPtr,
   options: LibAV.AVDictionaryPtr
-) => Promise<LibAV.AVFormatContextPtr>;
+) => Promise<number>;
 
 Module.avformat_open_input_stream = function (
   inputStream: ReadableStream<ArrayBufferView>,
   fmt: LibAV.AVInputFormatPtr = NULLPTR,
   options: LibAV.AVDictionaryPtr = NULLPTR
 ): Promise<LibAV.AVFormatContextPtr> {
-  let read: (buf: Uint8Array) => Promise<number>;
-  let reader:
-    | ReadableStreamBYOBReader
-    | ReadableStreamDefaultReader<ArrayBufferView>;
-  try {
-    reader = inputStream.getReader({ mode: "byob" });
-    read = (buf) =>
-      reader.read(buf).then(({ value }) => {
-        if (value) {
-          return value.byteLength;
-        }
-        return LibAV.AVError.EOF;
-      });
-  } catch {
-    reader = inputStream.getReader();
-    read = streamReader(reader);
-  }
   const fmt_ctx = Module._avformat_alloc_context();
   if (!fmt_ctx) {
-    return Promise.reject(Error("allocation failure"));
+    return Promise.reject(Error("avformat allocation failure"));
   }
-  ff_open_streams[fmt_ctx] = (buf) =>
-    read(buf).catch((err) => {
-      console.error(err);
-      return LibAV.AVError.EOF;
-    });
-  return avformat_open_input_js(fmt_ctx, fmt_ctx, fmt, options).then((r) => {
-    if (!r) {
-      reader.cancel();
+  const reader = createStreamReader(inputStream);
+  ff_open_streams[fmt_ctx] = reader;
+  return avjs_open_input(fmt_ctx, 4096, fmt_ctx, fmt, options).then((r) => {
+    if (r < 0) {
+      reader.close();
       delete ff_open_streams[fmt_ctx];
+      throw new Error("avformat_open_input_stream error: " + r);
     }
-    return r;
+    return fmt_ctx;
   });
+};
+
+Module.avformat_close_input = async function (fmt: LibAV.AVFormatContextPtr) {
+  await ff_open_streams[fmt]?.close();
+  delete ff_open_streams[fmt];
+  Module._avjs_close_input(fmt);
 };
 
 Module.av_packet_alloc = cwrap(
   "av_packet_alloc",
   "number",
   []
-) as () => LibAV.AVPacketPtr;
+) as LibAV.LibAVModule["av_packet_alloc"];
 Module.av_read_frame = cwrap("av_read_frame", "number", ["number", "number"], {
   async: true,
-}) as (ctx, packet) => Promise<LibAV.AVPacketPtr>;
+}) as LibAV.LibAVModule["av_read_frame"];
 
 Module.AVPacket_data = cwrap("AVPacket_data", "number", ["number"]);
 Module.AVPacket_size = cwrap("AVPacket_size", "number", ["number"]);
@@ -138,7 +172,7 @@ Module.AVFormatContext_streams_a = cwrap(
   "AVFormatContext_streams_a",
   "number",
   ["number", "number"]
-) as LibAV.LibAVModule["AVFormatContext_streams_a"];
+) as unknown as LibAV.LibAVModule["AVFormatContext_streams_a"];
 
 Module.AVStream_time_base = function (stream: LibAV.AVStreamPtr) {
   return {
@@ -148,7 +182,7 @@ Module.AVStream_time_base = function (stream: LibAV.AVStreamPtr) {
 };
 Module.AVStream_codecpar = cwrap("AVStream_codecpar", "number", [
   "number",
-]) as LibAV.LibAVModule["AVStream_codecpar"];
+]) as unknown as LibAV.LibAVModule["AVStream_codecpar"];
 
 Module.AVCodecParameters_channels = cwrap(
   "AVCodecParameters_channels",

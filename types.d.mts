@@ -24,6 +24,8 @@ export interface LibAVModule extends EmscriptenModule {
     options?: AVDictionaryPtr
   ): Promise<AVFormatContextPtr>;
 
+  avformat_close_input(fmt: AVFormatContextPtr): Promise<void>;
+
   av_packet_alloc(): AVPacketPtr;
   av_read_frame(ctx: AVFormatContextPtr, packet: AVPacketPtr): Promise<number>;
 
@@ -46,6 +48,7 @@ export interface LibAVModule extends EmscriptenModule {
 }
 export const enum AVError {
   EOF = -541478725,
+  ENOMEM = -9971,
 }
 export declare const NULLPTR: number & { __brand: any };
 declare const factory: EmscriptenModuleFactory<LibAVModule>;

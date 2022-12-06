@@ -3,36 +3,66 @@
 #include "libavformat/avformat.h"
 #include "libavutil/avutil.h"
 
-EM_JS(int, libavjs_read_async, (void *h, uint8_t *buf, int buf_size), {
-    return Asyncify.handleAsync(function () {
-        return libavjs_read(h, buf, buf_size);
+EM_JS(int, avjs_read_async, (void *h, uint8_t *buf, int buf_size), {
+    return Asyncify.handleAsync(function() {
+        return avjs_read(h, buf, buf_size);
     });
 });
 
-AVFormatContext *avformat_open_input_js(void *handle, AVFormatContext *opt_fmt_ctx, AVInputFormat *fmt, AVDictionary **options)
+int avjs_open_input(void *handle, uint32_t buf_size, AVFormatContext *fmt_ctx, AVInputFormat *fmt, AVDictionary **options)
 {
-    uint8_t *buf = av_malloc(4096);
-    if (buf == NULL) {
-        return NULL;
+    uint8_t *buf = NULL;
+    AVIOContext *io_ctx = NULL;
+    int err = 0;
+
+    buf = av_malloc(buf_size);
+    if (buf == NULL)
+    {
+        err = AVERROR(ENOMEM);
+        goto cleanup;
     }
-    AVIOContext *io_ctx = avio_alloc_context(buf, 4096, 0, handle, libavjs_read_async, NULL, NULL);
-    if (io_ctx == NULL) {
-        av_free(buf);
-        return NULL;
-    }
-    AVFormatContext *fmt_ctx = opt_fmt_ctx != NULL ? opt_fmt_ctx : avformat_alloc_context();
-    if (fmt_ctx == NULL) {
-        avio_context_free(&io_ctx);
-        return NULL;
+    io_ctx = avio_alloc_context(buf, buf_size, 0, handle, avjs_read_async, NULL, NULL);
+    if (io_ctx == NULL)
+    {
+        err = AVERROR(ENOMEM);
+        goto cleanup;
     }
     fmt_ctx->pb = io_ctx;
-    int err = avformat_open_input(&fmt_ctx, NULL, fmt, options);
-    if (err < 0) {
-        return NULL;
+    err = avformat_open_input(&fmt_ctx, NULL, fmt, options);
+    if (err < 0)
+    {
+        goto cleanup;
     }
-    return fmt_ctx;
+    return err;
+
+cleanup:
+    if (fmt_ctx != NULL)
+    {
+        avformat_free_context(fmt_ctx);
+    }
+    if (io_ctx != NULL)
+    {
+        avio_context_free(&io_ctx);
+    }
+    if (buf != NULL)
+    {
+        av_freep(&buf);
+    }
+
+    return err;
 }
 
+void avjs_close_input(AVFormatContext *fmt_ctx)
+{
+    AVIOContext *io_ctx = fmt_ctx->pb;
+    uint8_t *buf = io_ctx->buffer;
+
+    avformat_close_input(&fmt_ctx);
+    avio_context_free(&io_ctx);
+    av_free(buf);
+}
+
+// clang-format off
 #define A(struc, type, field) \
     type struc ## _ ## field(struc *a) { return a->field; } \
     void struc ## _ ## field ## _s(struc *a, type b) { a->field = b; }
@@ -64,7 +94,6 @@ B(enum AVColorPrimaries, color_primaries)
 B(enum AVColorTransferCharacteristic, color_trc)
 B(enum AVColorSpace, color_space)
 B(enum AVChromaLocation, chroma_location)
-// B(int, channels)
 B(int, sample_rate)
 #undef B
 
@@ -105,10 +134,14 @@ BL(int64_t, duration)
 #undef B
 #undef BL
 
-int AVStream_time_base_num(AVStream *a) {
+// clang-format on
+
+int AVStream_time_base_num(AVStream *a)
+{
     return a->time_base.num;
 }
 
-int AVStream_time_base_den(AVStream *a) {
+int AVStream_time_base_den(AVStream *a)
+{
     return a->time_base.den;
 }
