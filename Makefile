@@ -42,6 +42,9 @@ libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 # General build rule for any target
 # Use: buildrule(target file name, target inst name, CFLAGS, 
 
+avformat.mjs: export CFLAGS += -fPIC
+avformat.mjs: export EMCC_DEBUG=1
+
 avformat.mjs: EFLAGS = \
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
