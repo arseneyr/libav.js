@@ -43,20 +43,21 @@ libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 # Use: buildrule(target file name, target inst name, CFLAGS, 
 
 avformat.mjs: export CFLAGS += -fPIC
-avformat.mjs: export EMCC_DEBUG=1
+# avformat.mjs: export EMCC_DEBUG=1
 
 avformat.mjs: EFLAGS = \
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
 	-s "EXPORTED_FUNCTIONS=@min-exports" \
 	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
-	-s MODULARIZE=1 \
-	-s ASYNCIFY \
+	-sMODULARIZE \
+	-sASYNCIFY \
 	-s "ASYNCIFY_IMPORTS=['avjs_read_async']" \
-	-s ALLOW_MEMORY_GROWTH=1 \
-	-s EXPORT_ES6=1 \
+	-sALLOW_MEMORY_GROWTH \
+	-sEXPORT_ES6 \
 	-s "ENVIRONMENT='web'" \
-	-s FILESYSTEM=0
+	-sMAIN_MODULE=2 \
+	-sNO_FILESYSTEM 
 
 avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a bindings_min.c post.js extern-post.js min-exports
 	$(EMCC) -O0 -g -gsource-map --source-map-base "/node_modules/libav.js/" $(EFLAGS) -sLLD_REPORT_UNDEFINED \
@@ -67,7 +68,6 @@ avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavform
 		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavutil/libavutil.a \
 		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavcodec/libavcodec.a \
 		`test ! -e configs/mux-only/libs.txt || sed 's/@TARGET/base/' configs/mux-only/libs.txt` -o $(@)
-
 
 # asm.js version
 

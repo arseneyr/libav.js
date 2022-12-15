@@ -9,6 +9,11 @@ EM_JS(int, avjs_read_async, (void *h, uint8_t *buf, int buf_size), {
     });
 });
 
+int avjs_read_wrapper(void *h, uint8_t *buf, int buf_size)
+{
+    return avjs_read_async(h, buf, buf_size);
+}
+
 int avjs_open_input(void *handle, uint32_t buf_size, AVFormatContext *fmt_ctx, AVInputFormat *fmt, AVDictionary **options)
 {
     uint8_t *buf = NULL;
@@ -21,7 +26,7 @@ int avjs_open_input(void *handle, uint32_t buf_size, AVFormatContext *fmt_ctx, A
         err = AVERROR(ENOMEM);
         goto cleanup;
     }
-    io_ctx = avio_alloc_context(buf, buf_size, 0, handle, avjs_read_async, NULL, NULL);
+    io_ctx = avio_alloc_context(buf, buf_size, 0, handle, avjs_read_wrapper, NULL, NULL);
     if (io_ctx == NULL)
     {
         err = AVERROR(ENOMEM);

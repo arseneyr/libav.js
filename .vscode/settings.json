@@ -1,0 +1,8 @@
+{
+	"editor.formatOnSave": true,
+	"C_Cpp.default.includePath": [
+		"/emsdk/upstream/emscripten/system/include",
+		"ffmpeg-5.1",
+		"ffmpeg-5.1/build-base-mux-only"
+	]
+}
