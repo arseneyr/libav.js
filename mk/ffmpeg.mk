@@ -8,13 +8,11 @@ FFMPEG_VERSION=5.1
 FFMPEG_CONFIG=--prefix=/opt/ffmpeg \
 	--target-os=linux \
 	--cc=emcc --ranlib=emranlib \
-	--enable-small --disable-doc \
-	--disable-stripping \
-	--disable-programs \
-	--disable-ffplay --disable-ffprobe --disable-network --disable-iconv --disable-xlib \
-	--disable-sdl2 \
-	--disable-everything
-
+	--disable-all \
+	--disable-autodetect \
+	--disable-runtime-cpudetect \
+	--enable-small \
+	--enable-static
 
 ffmpeg-$(FFMPEG_VERSION)/build-%/libavformat/libavformat.a: \
 	ffmpeg-$(FFMPEG_VERSION)/build-%/ffbuild/config.mak
