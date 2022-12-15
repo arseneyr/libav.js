@@ -36,28 +36,32 @@ function defaultStreamReader(
   return async (destBuf: Uint8Array) => {
     let copied = 0;
     while (copied < destBuf.byteLength) {
-      const sourceBuf = remainingBuffer ?? (await reader.read()).value;
-      if (!sourceBuf) {
-        if (copied === 0) {
-          return LibAV.AVError.EOF;
+      try {
+        const sourceBuf = remainingBuffer ?? (await reader.read()).value;
+        if (!sourceBuf) {
+          if (copied === 0) {
+            return LibAV.AVError.EOF;
+          }
+          break;
         }
-        break;
-      }
-      const destSubBuf = destBuf.subarray(copied);
-      const size = Math.min(sourceBuf.byteLength, destSubBuf.byteLength);
-      destSubBuf.set(
-        new Uint8Array(sourceBuf.buffer, sourceBuf.byteOffset, size)
-      );
-      if (size < sourceBuf.byteLength) {
-        remainingBuffer = new Uint8Array(
-          sourceBuf.buffer,
-          sourceBuf.byteOffset + size,
-          sourceBuf.byteLength - size
+        const destSubBuf = destBuf.subarray(copied);
+        const size = Math.min(sourceBuf.byteLength, destSubBuf.byteLength);
+        destSubBuf.set(
+          new Uint8Array(sourceBuf.buffer, sourceBuf.byteOffset, size)
         );
-      } else {
-        remainingBuffer = null;
+        if (size < sourceBuf.byteLength) {
+          remainingBuffer = new Uint8Array(
+            sourceBuf.buffer,
+            sourceBuf.byteOffset + size,
+            sourceBuf.byteLength - size
+          );
+        } else {
+          remainingBuffer = null;
+        }
+        copied += size;
+      } catch {
+        return LibAV.AVError.EOF;
       }
-      copied += size;
     }
     return copied;
   };
@@ -69,13 +73,17 @@ function byobStreamReader(
   return async (destBuf) => {
     let copied = 0;
     while (copied < destBuf.byteLength) {
-      const { value, done } = await reader.read(destBuf.subarray(copied));
-      if (value) {
-        copied += value.byteLength;
-        if (done) {
-          break;
+      try {
+        const { value, done } = await reader.read(destBuf.subarray(copied));
+        if (value) {
+          copied += value.byteLength;
+          if (done) {
+            break;
+          }
+        } else {
+          return LibAV.AVError.EOF;
         }
-      } else {
+      } catch {
         return LibAV.AVError.EOF;
       }
     }
