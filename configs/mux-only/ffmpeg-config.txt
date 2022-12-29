@@ -1,4 +1,2 @@
 --enable-avcodec
 --enable-avformat
---enable-demuxer=ogg
---enable-muxer=ogg

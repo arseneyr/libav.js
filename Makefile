@@ -6,7 +6,7 @@
 LIBAVJS_VERSION=3.8.5.1
 EMCC=emcc
 MINIFIER=node_modules/.bin/uglifyjs -m
-CFLAGS=-Oz -g1
+CFLAGS=-fPIC -flto
 EFLAGS=\
 	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
 	-s "EXPORT_NAME='LibAVFactory'" \
@@ -21,6 +21,20 @@ all: build-default
 
 include mk/*.mk
 
+mp3.wasm: \
+	ffmpeg/build-base-mux-only/libavformat/mp3dec.o \
+	ffmpeg/build-base-mux-only/libavcodec/mpegaudiodecheader.o \
+	ffmpeg/build-base-mux-only/libavcodec/mpegaudiotabs.o \
+	ffmpeg/build-base-mux-only/libavformat/replaygain.o
+	$(EMCC) $(CFLAGS) -sNO_FILESYSTEM -sSIDE_MODULE=2 -sEXPORTED_FUNCTIONS=['_ff_mp3_demuxer'] -o $(@) $(^) 
+
+avformat.mjs: export CFLAGS += -Oz -g
+avformat.mjs: \
+	ffmpeg/build-base-mux-only/libavformat/libavformat.a \
+	ffmpeg/build-base-mux-only/libavcodec/libavcodec.a \
+	ffmpeg/build-base-mux-only/libavutil/libavutil.a \
+	mp3.wasm
+	$(EMCC) $(CFLAGS) -sNO_FILESYSTEM -sMAIN_MODULE=2 -o $(@) $(^)
 
 build-%: libav-$(LIBAVJS_VERSION)-%.js libav-$(LIBAVJS_VERSION)-%.mjs
 	true
@@ -42,32 +56,32 @@ libav-$(LIBAVJS_VERSION)-%.wasm.js: export EMCC_DEBUG=1
 # General build rule for any target
 # Use: buildrule(target file name, target inst name, CFLAGS, 
 
-avformat.mjs: export CFLAGS += -fPIC
-# avformat.mjs: export EMCC_DEBUG=1
+# avformat.mjs: export CFLAGS += -fPIC
+# # avformat.mjs: export EMCC_DEBUG=1
 
-avformat.mjs: EFLAGS = \
-	--memory-init-file 0 --post-js post.js --extern-post-js extern-post.js \
-	-s "EXPORT_NAME='LibAVFactory'" \
-	-s "EXPORTED_FUNCTIONS=@min-exports" \
-	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
-	-sMODULARIZE \
-	-sASYNCIFY \
-	-s "ASYNCIFY_IMPORTS=['avjs_read_async']" \
-	-sALLOW_MEMORY_GROWTH \
-	-sEXPORT_ES6 \
-	-s "ENVIRONMENT='web'" \
-	-sMAIN_MODULE=2 \
-	-sNO_FILESYSTEM 
+# avformat.mjs: EFLAGS = \
+# 	--no-entry --memory-init-file 0 \
+# 	--post-js post.js --extern-post-js extern-post.js \
+# 	-s "EXPORT_NAME='LibAVFactory'" \
+# 	-s "EXPORTED_FUNCTIONS=@min-exports" \
+# 	-s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" \
+# 	-sMODULARIZE \
+# 	-sASYNCIFY \
+# 	-s "ASYNCIFY_IMPORTS=['avjs_read_async']" \
+# 	-sALLOW_MEMORY_GROWTH \
+# 	-sEXPORT_ES6 \
+# 	-s "ENVIRONMENT='web'" \
+# 	-sMAIN_MODULE=2 
 
-avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a bindings_min.c post.js extern-post.js min-exports
-	$(EMCC) -O0 -g -gsource-map --source-map-base "/node_modules/libav.js/" $(EFLAGS) -sLLD_REPORT_UNDEFINED \
-		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-mux-only \
-		`test ! -e configs/mux-only/link-flags.txt || cat configs/mux-only/link-flags.txt` \
-		bindings_min.c \
-		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a \
-		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavutil/libavutil.a \
-		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavcodec/libavcodec.a \
-		`test ! -e configs/mux-only/libs.txt || sed 's/@TARGET/base/' configs/mux-only/libs.txt` -o $(@)
+# avformat.mjs: ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a bindings_min.c post.js extern-post.js min-exports
+# 	$(EMCC) -O0 -g -gsource-map --source-map-base "/node_modules/libav.js/" $(EFLAGS) -sLLD_REPORT_UNDEFINED \
+# 		-Iffmpeg-$(FFMPEG_VERSION) -Iffmpeg-$(FFMPEG_VERSION)/build-base-mux-only \
+# 		`test ! -e configs/mux-only/link-flags.txt || cat configs/mux-only/link-flags.txt` \
+# 		bindings_min.c \
+# 		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavformat/libavformat.a \
+# 		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavutil/libavutil.a \
+# 		ffmpeg-$(FFMPEG_VERSION)/build-base-mux-only/libavcodec/libavcodec.a \
+# 		`test ! -e configs/mux-only/libs.txt || sed 's/@TARGET/base/' configs/mux-only/libs.txt` -o $(@)
 
 # asm.js version
 
@@ -251,7 +265,7 @@ clean: halfclean
 	-rm -rf libvpx-$(LIBVPX_VERSION)
 	-rm -rf lame-$(LAME_VERSION)
 	-rm -rf openh264-$(OPENH264_VERSION)
-	-rm -rf ffmpeg-$(FFMPEG_VERSION)
+	git -C ffmpeg clean -xfd
 
 distclean: clean
 	-rm -f opus-$(OPUS_VERSION).tar.gz
@@ -261,7 +275,6 @@ distclean: clean
 	-rm -f libvpx-$(LIBVPX_VERSION).tar.gz
 	-rm -f lame-$(LAME_VERSION).tar.gz
 	-rm -rf openh264-$(OPENH264_VERSION).tar.gz
-	-rm -f ffmpeg-$(FFMPEG_VERSION).tar.xz
 
 .PRECIOUS: \
 	libav-$(LIBAVJS_VERSION)-%.js \

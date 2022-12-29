@@ -1,0 +1,5 @@
+[submodule "ffmpeg"]
+	path = ffmpeg
+	url = https://github.com/arseneyr/ffmpeg
+	shallow = true
+	ignore = dirty
